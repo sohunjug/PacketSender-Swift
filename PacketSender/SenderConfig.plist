@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IP</key>
+	<string>127.0.0.1</string>
+	<key>Port</key>
+	<string>8080</string>
+	<key>Agreement</key>
+	<integer>0</integer>
+	<key>recv_hex</key>
+	<false/>
+	<key>recv_clean</key>
+	<false/>
+	<key>recv_format</key>
+	<false/>
+	<key>send_hex</key>
+	<false/>
+	<key>send_clean</key>
+	<false/>
+	<key>send_format</key>
+	<false/>
+	<key>send_loop</key>
+	<false/>
+	<key>send_reconnt</key>
+	<false/>
+	<key>send_append</key>
+	<false/>
+	<key>send_text</key>
+	<string></string>
+	<key>recv_text</key>
+	<string></string>
+</dict>
+</plist>

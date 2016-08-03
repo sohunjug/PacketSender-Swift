@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "0730"
+   LastUpgradeVersion = "0700"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -14,10 +14,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "321AF18B1D50AB78006E68B9"
-               BuildableName = "PacketSender.app"
-               BlueprintName = "PacketSender"
-               ReferencedContainer = "container:PacketSender.xcodeproj">
+               BlueprintIdentifier = "AB66F14B03A5BC03EE018DC3F45D45FB"
+               BuildableName = "Pods_PacketSenderUITests.framework"
+               BlueprintName = "Pods-PacketSenderUITests"
+               ReferencedContainer = "container:Pods.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -28,26 +28,7 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "321AF19A1D50AB78006E68B9"
-               BuildableName = "PacketSenderUITests.xctest"
-               BlueprintName = "PacketSenderUITests"
-               ReferencedContainer = "container:PacketSender.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "321AF18B1D50AB78006E68B9"
-            BuildableName = "PacketSender.app"
-            BlueprintName = "PacketSender"
-            ReferencedContainer = "container:PacketSender.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
       <AdditionalOptions>
       </AdditionalOptions>
    </TestAction>
@@ -61,16 +42,15 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
+      <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "321AF18B1D50AB78006E68B9"
-            BuildableName = "PacketSender.app"
-            BlueprintName = "PacketSender"
-            ReferencedContainer = "container:PacketSender.xcodeproj">
+            BlueprintIdentifier = "AB66F14B03A5BC03EE018DC3F45D45FB"
+            BuildableName = "Pods_PacketSenderUITests.framework"
+            BlueprintName = "Pods-PacketSenderUITests"
+            ReferencedContainer = "container:Pods.xcodeproj">
          </BuildableReference>
-      </BuildableProductRunnable>
+      </MacroExpansion>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>
@@ -80,19 +60,9 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "321AF18B1D50AB78006E68B9"
-            BuildableName = "PacketSender.app"
-            BlueprintName = "PacketSender"
-            ReferencedContainer = "container:PacketSender.xcodeproj">
-         </BuildableReference>
-      </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
-      buildConfiguration = "Release">
+      buildConfiguration = "Debug">
    </AnalyzeAction>
    <ArchiveAction
       buildConfiguration = "Release"
