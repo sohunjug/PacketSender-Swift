@@ -30,5 +30,7 @@
 	<string></string>
 	<key>recv_text</key>
 	<string></string>
+	<key>send_history</key>
+	<array/>
 </dict>
 </plist>

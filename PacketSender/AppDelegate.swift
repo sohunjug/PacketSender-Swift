@@ -67,23 +67,30 @@ extension NSTextView {
         
         let charCount = (s as NSString).length
         self.scrollRangeToVisible(NSMakeRange(charCount, 0))
+        self.scrollToEndOfDocument(nil)
         needsDisplay = true
     }
     
 }
 
 @NSApplicationMain
-class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDAsyncUdpSocketDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDAsyncUdpSocketDelegate, NSTableViewDataSource, NSTableViewDelegate {
     
     @IBOutlet weak var window: NSWindow!
-    @IBOutlet weak var recvText: NSTextView!
-    @IBOutlet weak var sendText: NSTextView!
-    @IBOutlet weak var contentView: NSVisualEffectView!
-    @IBOutlet weak var agreement: NSComboBox!
-    @IBOutlet weak var connect: NSButton!
-    @IBOutlet weak var ip: NSTextField!
-    @IBOutlet weak var port: NSTextField!
-    @IBOutlet weak var sendCount: NSTextField!
+    @IBOutlet weak var history: NSTableView!
+    @IBOutlet var recvText: NSTextView!
+    @IBOutlet var sendText: NSTextView!
+    @IBOutlet var contentView: NSVisualEffectView!
+    @IBOutlet var agreement: NSComboBox!
+    @IBOutlet var connect: NSButton!
+    @IBOutlet var ip: NSTextField!
+    @IBOutlet var port: NSTextField!
+    @IBOutlet var sendCount: NSTextField!
+    
+    @IBOutlet var bytesend: NSTextField!
+    @IBOutlet var byterecv: NSTextField!
+    @IBOutlet var countsend: NSTextField!
+    @IBOutlet var countrecv: NSTextField!
     
     private var recvaddress: NSData!
     private var tcpsocket: GCDAsyncSocket!
@@ -91,6 +98,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
     private var udpsocket: GCDAsyncUdpSocket!
     private var connectionFlag: Bool = true
     private let Defaults = NSUserDefaults.standardUserDefaults()
+    private var hisdata = [NSMutableDictionary]()
+    private var tmpdata: NSData!
     
     func changeAppleInterfaceTheme(aNotification: NSNotification) {
         let appearance = NSUserDefaults.standardUserDefaults().stringForKey("AppleInterfaceStyle") ?? "Light"
@@ -98,9 +107,67 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
             self.window.appearance = NSAppearance.init(named: NSAppearanceNameVibrantDark)
             //self.contentView.material = NSVisualEffectMaterial.Dark
             //recvText.superview?.appearance = NSAppearance.init(named: NSAppearanceNameVibrantDark)
-            recvText.appearance = NSAppearance.init(named: NSAppearanceNameVibrantDark)
+            //recvText.appearance = NSAppearance.init(named: NSAppearanceNameVibrantDark)
         } else {
             self.window.appearance = NSAppearance.init(named: NSAppearanceNameVibrantLight)
+        }
+    }
+    
+    func numberOfRowsInTableView(aTableView: NSTableView) -> Int {
+        return hisdata.count
+    }
+    
+    func tableView(tableView: NSTableView, objectValueForTableColumn tableColumn: NSTableColumn?, row: Int) -> AnyObject? {
+        let object = hisdata[row]
+        if ((tableColumn!.identifier) == "Check") {
+            return object[tableColumn!.identifier] as? Int!
+        } else {
+            return object[tableColumn!.identifier] as? String!
+        }
+    }
+    
+    func tableView(tableView: NSTableView, setObjectValue object: AnyObject?, forTableColumn tableColumn: NSTableColumn?, row: Int) {
+        let data = self.hisdata[row]
+        //表格列的标识
+        let key = tableColumn?.identifier
+        let editData = NSMutableDictionary.init(dictionary: data)
+        editData[key!] = object
+        self.hisdata[row] = editData
+    }
+    
+    func tableViewSelectionIsChanging(notification: NSNotification) {
+        let tableView = notification.object
+        let row = tableView?.selectedRow
+        sendText.string = hisdata[row!]["SendHistory"]! as? String
+    }
+    
+    @IBAction func noneChoose(sender: NSButton) {
+        for i in hisdata {
+            i["Check"] = 0
+        }
+        history.reloadData()
+    }
+    
+    @IBAction func cleanOther(sender: NSButton) {
+        for i in hisdata {
+            if i["Check"]! as! NSObject == 0 {
+                hisdata.removeAtIndex(hisdata.indexOf(i)!)
+            }
+        }
+        Defaults.setObject(hisdata, forKey: "send_history")
+        Defaults.synchronize()
+        history.reloadData()
+    }
+    
+    @IBAction func showWindows(sender: AnyObject) {
+        for window in NSApp.windows {
+            window.makeKeyAndOrderFront(self)
+        }
+    }
+    
+    @IBAction func closeWindows(sender: AnyObject) {
+        for window in NSApp.windows {
+            window.orderOut(nil)
         }
     }
     
@@ -123,12 +190,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
         Defaults.registerDefaults(initDefaults as! [String : AnyObject])
         NSDistributedNotificationCenter.defaultCenter().addObserver(self, selector: #selector(changeAppleInterfaceTheme(_:)), name: "AppleInterfaceThemeChangedNotification", object: nil)
         changeAppleInterfaceTheme(aNotification)
-        agreement.selectItemAtIndex(Defaults.integerForKey("Agreement"))
-        ip.stringValue = Defaults.stringForKey("IP")!
-        port.stringValue = Defaults.stringForKey("Port")!
-        sendText.string = Defaults.stringForKey("send_text")!
-        recvText.string = Defaults.stringForKey("recv_text")!
+        agreement.selectItemAtIndex(Defaults.integerForKey("Agreement") ?? 0)
+        ip.stringValue = Defaults.stringForKey("IP")! ?? ""
+        port.stringValue = Defaults.stringForKey("Port")! ?? ""
+        sendText.string = Defaults.stringForKey("send_text")! ?? ""
+        recvText.string = Defaults.stringForKey("recv_text")! ?? ""
         sendCount.stringValue = "1"
+        for i in Defaults.arrayForKey("send_history")! {
+            hisdata.append(i as! NSMutableDictionary)
+        }
+        history.gridStyleMask = [NSTableViewGridLineStyle.SolidHorizontalGridLineMask, .SolidVerticalGridLineMask]
+        history.reloadData()
         //recvText.string = appearance
         // Insert code here to initialize your application
     }
@@ -143,10 +215,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
     
     @IBAction func recvClean(sender: NSButton) {
         recvText.string = ""
+        Defaults.setValue(recvText.string, forKey: "recv_text")
     }
     
     @IBAction func sendClean(sender: NSButton) {
         sendText.string = ""
+        Defaults.setValue(sendText.string, forKey: "send_text")
     }
     
     @IBAction func connectAction(sender: NSButton) {
@@ -162,8 +236,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
                     try tcpsocket.acceptOnPort(UInt16(port.integerValue))
                     if Defaults.boolForKey("recv_clean") == false {
                         recvText.string = ""
+                        Defaults.setValue(recvText.string, forKey: "recv_text")
                     }
                     recvText.appendString(string: "> [ from " + ip.stringValue + ":" + port.stringValue + " ] TCP Server Started \n")
+                    Defaults.setValue(recvText.string, forKey: "recv_text")
                     break
                 case 2:
                     udpsocket = GCDAsyncUdpSocket(delegate: self, delegateQueue: dispatch_get_main_queue())
@@ -175,8 +251,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
                     try udpsocket.beginReceiving()
                     if Defaults.boolForKey("recv_clean") == false {
                         recvText.string = ""
+                        Defaults.setValue(recvText.string, forKey: "recv_text")
                     }
                     recvText.appendString(string: "> [ from " + ip.stringValue + ":" + port.stringValue + " ] UDP Server Started \n")
+                    Defaults.setValue(recvText.string, forKey: "recv_text")
                 default:
                     break
                 }
@@ -222,6 +300,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
     
     @IBAction func sendAction(sender: NSButton) {
         sendMul()
+        for i in hisdata {
+            if i["SendHistory"] as? String == sendText.string {
+                return
+            }
+        }
+        let data = NSMutableDictionary()
+        data["Check"] = 0
+        data["SendHistory"] = sendText.string
+        hisdata.append(data)
+        Defaults.setObject(hisdata, forKey: "send_history")
+        Defaults.synchronize()
+        history.reloadData()
     }
     
     func sendMul() {
@@ -229,6 +319,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
         if self.Defaults.boolForKey("send_loop") {
             c = 1
         }
+        Defaults.setValue(sendText.string, forKey: "send_text")
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), { () -> Void in
         while c > 0 && ((self.tcpsocket != nil && self.tcpsocket.isConnected) || (self.tcpclient != nil && self.tcpclient.isConnected) || (self.udpsocket != nil && (self.udpsocket.isConnected() || self.recvaddress != nil))) {
             dispatch_async(dispatch_get_main_queue(), { () -> Void in
@@ -237,6 +328,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
             c = c - 1;
             dispatch_async(dispatch_get_main_queue(), { () -> Void in
             self.sendCount.stringValue = String(c)
+            self.countsend.stringValue = String(self.countsend.integerValue+1)
             })
         }
             if c == 0 {
@@ -247,6 +339,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
         if self.Defaults.boolForKey("send_clean") == false {
             dispatch_async(dispatch_get_main_queue(), { () -> Void in
             self.sendText.string = ""
+                self.Defaults.setValue(self.sendText.string, forKey: "send_text")
             })
         }
         })
@@ -294,15 +387,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
                 break
             default: break
             }
+            dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                self.bytesend.stringValue = String(data.length + self.bytesend.integerValue)
+            })
+            tmpdata = data;
         }
     }
     
     func socket(sock: GCDAsyncSocket, didConnectToHost host: String, port: UInt16) {
         if Defaults.boolForKey("recv_clean") == false {
             recvText.string = ""
+            Defaults.setValue(recvText.string, forKey: "recv_text")
         }
-        let from: String = sock.connectedHost! + ":" + String(sock.connectedPort)
+        let from: String = (sock.connectedHost ?? "127.0.0.1") + ":" + String(sock.connectedPort) ?? ""
         recvText.appendString(string: "> [ from " + from + " ] TCP Connected \n")
+        Defaults.setValue(recvText.string, forKey: "recv_text")
         tcpsocket.readDataWithTimeout(-1, tag: 1)
     }
     
@@ -312,9 +411,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
         }
         if Defaults.boolForKey("recv_clean") == false {
             recvText.string = ""
+            Defaults.setValue(recvText.string, forKey: "recv_text")
         }
-        let from: String = tcpclient.connectedHost! + ":" + String(tcpclient.connectedPort)
+        let from: String = (tcpclient.connectedHost ?? "127.0.0.1") + ":" + String(tcpclient.connectedPort)
         recvText.appendString(string: "> [ from " + from + " ] TCP Accepted \n")
+        Defaults.setValue(recvText.string, forKey: "recv_text")
         tcpclient.readDataWithTimeout(-1, tag: 1)
     }
     
@@ -336,11 +437,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
         connectionFlag = true
         connect.title = "Connect"
         agreement.enabled = true
+        connect.image = NSImage(contentsOfFile: NSBundle.mainBundle().pathForImageResource("disconnected")!)
         recvText.appendString(string: "> TCP Disconnected \n")
+        bytesend.stringValue = "0"
+        byterecv.stringValue = "0"
+        countsend.stringValue = "0"
+        countrecv.stringValue = "0"
+        Defaults.setValue(recvText.string, forKey: "recv_text")
     }
     
     func socket(sock: GCDAsyncSocket, didReadData data: NSData, withTag tag: Int) {
-        let from: String = sock.connectedHost! + ":" + String(sock.connectedPort)
+        let from: String = (sock.connectedHost ?? "127.0.0.1") + ":" + String(sock.connectedPort)
         var recvdata: String = String(data: data, encoding: NSUTF8StringEncoding)!
         if Defaults.boolForKey("recv_hex") == false {
             recvdata = data.hexadecimal()
@@ -352,49 +459,63 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
             recvdata = recvdata.stringByReplacingOccurrencesOfString("\0", withString: "\\0")
         }
         recvText.appendString(string: "> [ from " + from + " ] TCP Recved " + String(recvdata.characters.count) + "\n" + recvdata + "\n")
-        tcpclient.readDataWithTimeout(-1, tag: tag)
+        Defaults.setValue(recvText.string, forKey: "recv_text")
+        byterecv.stringValue = String(byterecv.integerValue+recvdata.characters.count)
+        countrecv.stringValue = String(countrecv.integerValue+1)
+        sock.readDataWithTimeout(-1, tag: tag)
     }
     
     func socket(sock: GCDAsyncSocket, didWriteDataWithTag tag: Int) {
-        let from: String = sock.connectedHost! + ":" + String(sock.connectedPort)
+        let from: String = (sock.connectedHost ?? "") + ":" + String(sock.connectedPort)
         recvText.appendString(string: "> [ from " + from + " ] TCP Sended \n")
+        Defaults.setValue(recvText.string, forKey: "recv_text")
     }
     
     func udpSocket(sock: GCDAsyncUdpSocket, didConnectToAddress address: NSData) {
         if Defaults.boolForKey("recv_clean") == false {
             recvText.string = ""
+            Defaults.setValue(recvText.string, forKey: "recv_text")
         }
-        let from: String = sock.connectedHost()! + ":" + String(sock.connectedPort())
+        let from: String = (sock.connectedHost() ?? "") + ":" + String(sock.connectedPort())
         recvText.appendString(string: "> [ from " + from + " ] UDP Connected \n")
+        Defaults.setValue(recvText.string, forKey: "recv_text")
         do {
             try sock.beginReceiving()
         } catch {
             connectionFlag = true
             connect.title = "Connect"
             agreement.enabled = true
+            connect.image = NSImage(contentsOfFile: NSBundle.mainBundle().pathForImageResource("disconnected")!)
         }
     }
     
     func udpSocket(sock: GCDAsyncUdpSocket, didSendDataWithTag tag: Int) {
         var from: String!
         if sock.connectedHost() == nil {
-            from = GCDAsyncUdpSocket.hostFromAddress(recvaddress)! + ":" + String(GCDAsyncUdpSocket.portFromAddress(recvaddress))
+            from = (GCDAsyncUdpSocket.hostFromAddress(recvaddress) ?? "") + ":" + String(GCDAsyncUdpSocket.portFromAddress(recvaddress))
         } else {
-            from = sock.connectedHost()! + ":" + String(sock.connectedPort())
+            from = (sock.connectedHost() ?? "") + ":" + String(sock.connectedPort())
         }
         recvText.appendString(string: "> [ from " + from + " ] UDP Sended \n")
+        Defaults.setValue(recvText.string, forKey: "recv_text")
     }
     
     func udpSocketDidClose(sock: GCDAsyncUdpSocket, withError error: NSError) {
         recvText.appendString(string: "> UDP Disconnected \n")
+        Defaults.setValue(recvText.string, forKey: "recv_text")
         recvaddress = nil
         connectionFlag = true
         connect.title = "Connect"
         agreement.enabled = true
+        connect.image = NSImage(contentsOfFile: NSBundle.mainBundle().pathForImageResource("disconnected")!)
+        bytesend.stringValue = "0"
+        byterecv.stringValue = "0"
+        countsend.stringValue = "0"
+        countrecv.stringValue = "0"
     }
     
     func udpSocket(sock: GCDAsyncUdpSocket, didReceiveData data: NSData, fromAddress address: NSData, withFilterContext filterContext: AnyObject?) {
-        let from: String = GCDAsyncUdpSocket.hostFromAddress(address)! + ":" + String(GCDAsyncUdpSocket.portFromAddress(address))
+        let from: String = (GCDAsyncUdpSocket.hostFromAddress(address) ?? "") + ":" + String(GCDAsyncUdpSocket.portFromAddress(address))
         recvaddress = address.copy() as! NSData
         var recvdata: String = String(data: data, encoding: NSUTF8StringEncoding)!
         if Defaults.boolForKey("recv_hex") == false {
@@ -407,13 +528,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, GCDAsyncSocketDelegate, GCDA
             recvdata = recvdata.stringByReplacingOccurrencesOfString("\0", withString: "\\0")
         }
         recvText.appendString(string: "> [ from " + from + " ] UDP Recved " + String(recvdata.characters.count) + "\n" + recvdata + "\n")
+        Defaults.setValue(recvText.string, forKey: "recv_text")
         do {
             try sock.beginReceiving()
+            byterecv.stringValue = String(byterecv.integerValue+recvdata.characters.count)
+            countrecv.stringValue = String(countrecv.integerValue+1)
         } catch {
             connectionFlag = true
             connect.title = "Connect"
             agreement.enabled = true
+            connect.image = NSImage(contentsOfFile: NSBundle.mainBundle().pathForImageResource("disconnected")!)
         }
+        bytesend.stringValue = "0"
+        byterecv.stringValue = "0"
+        countsend.stringValue = "0"
+        countrecv.stringValue = "0"
     }
 }
 
